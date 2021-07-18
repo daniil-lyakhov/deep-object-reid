@@ -132,17 +132,6 @@ def main():
             batch_size=128,
             num_C=101
         ),
-        SUN397=dict(
-            resolution=(224, 224),
-            epochs=60,
-            roots=['SUN397/train.txt', 'SUN397/val.txt'],
-            names=['SUN397_train', 'SUN397_val'],
-            types=['classification', 'classification'],
-            sources='SUN397_train',
-            targets='SUN397_val',
-            batch_size=128,
-            num_C=397
-        ),
                 fashionMNIST=dict(
             resolution=(224, 224),
             epochs=35,
@@ -164,15 +153,27 @@ def main():
             targets='SVHN_val',
             batch_size=128,
             num_C=10
+        ),
+        SUN397=dict(
+            resolution=(224, 224),
+            epochs=60,
+            roots=['SUN397/train.txt', 'SUN397/val.txt'],
+            names=['SUN397_train', 'SUN397_val'],
+            types=['classification', 'classification'],
+            sources='SUN397_train',
+            targets='SUN397_val',
+            batch_size=128,
+            num_C=397
         )
     )
 
     path_to_base_cfg = args.config
     # write datasets you want to train
-    to_train = {"pets", 'caltech101', 'DTD'}
+    to_pass = {'Xray'}
 
+    # for model in ['mobilenetv3_small', 'mobilenetv3_large', 'mobilenetv3_large_075']:
     for key, params in datasets.items():
-        if key not in to_train:
+        if key in to_pass:
             continue
         cfg = read_config(yaml, path_to_base_cfg)
         path_to_exp_folder = cfg['data']['save_dir']
@@ -182,6 +183,9 @@ def main():
         type_val = params['types'][1]
         root_train = args.root + os.sep + params['roots'][0]
         root_val = args.root + os.sep + params['roots'][1]
+        # cfg['model']['name'] = model
+        # if model == 'mobilenetv3_small':
+        #     cfg['model']['feature_dim'] = 1024
         if args.use_hardcoded_lr:
             cfg['lr_finder']['enable'] = False
             print("WARNING: Using hardcoded LR")
@@ -204,7 +208,7 @@ def main():
 
         cfg['data']['height'] = params['resolution'][0]
         cfg['data']['width'] = params['resolution'][1]
-        cfg['data']['save_dir'] = path_to_exp_folder + f"/{key}"
+        cfg['data']['save_dir'] = path_to_exp_folder + 'efficient' + f"/{key}"
 
         source = params['sources']
         targets = params['targets']
@@ -228,6 +232,7 @@ def main():
                 )
         finally:
             os.remove(tmp_path_to_cfg)
+
 
     # after training combine all outputs in one file
     if args.dump_results:
