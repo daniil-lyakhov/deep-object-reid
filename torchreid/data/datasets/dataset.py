@@ -139,10 +139,11 @@ class Dataset:
         pids, cams = defaultdict(set), defaultdict(set)
         for record in data:
             dataset_id = record[3] if len(record) > 3 else 0
-
-            pids[dataset_id].add(record[1])
+            if isinstance(record[1], (tuple, list)):
+                [pids[dataset_id].add(ids) for ids in record[1]]
+            else:
+                pids[dataset_id].add(record[1])
             cams[dataset_id].add(record[2])
-
         num_pids = {dataset_id: len(dataset_pids) for dataset_id, dataset_pids in pids.items()}
         num_cams = {dataset_id: len(dataset_cams) for dataset_id, dataset_cams in cams.items()}
 
@@ -368,6 +369,11 @@ class ImageDataset(Dataset):
 
         if len(input_record) > 3:
             dataset_id = input_record[3]
+            if isinstance(obj_id, (tuple, list)): # than multi-label classification is available
+                targets = torch.zeros(self.num_train_pids[dataset_id])
+                for obj in obj_id:
+                    targets[obj] = 1
+                obj_id = targets
 
             mask = ''
             if input_record[4] != '':
@@ -408,6 +414,7 @@ class ImageDataset(Dataset):
                 transformed_image = image
 
             output_record = transformed_image, obj_id, cam_id
+
         return output_record
 
     def show_summary(self):

@@ -28,10 +28,9 @@ import torch.nn.functional as F
 from torchreid import metrics
 from torchreid.engine import Engine
 from torchreid.utils import get_model_attr
-from torchreid.losses import (AMSoftmaxLoss, CrossEntropyLoss, MetricLosses,
+from torchreid.losses import (AMSoftmaxLoss, CrossEntropyLoss, MetricLosses, AsymmetricLoss,
                               get_regularizer, sample_mask)
 from torchreid.optim import SAM
-
 
 class ImageAMSoftmaxEngine(Engine):
     r"""AM-Softmax-loss engine for image-reid.
@@ -59,7 +58,7 @@ class ImageAMSoftmaxEngine(Engine):
                                                    use_ema_decay=use_ema_decay,
                                                    ema_decay=ema_decay)
 
-        assert softmax_type in ['stock', 'am']
+        assert softmax_type in ['stock', 'am', 'mlc']
         assert s > 0.0
         if softmax_type == 'am':
             assert m >= 0.0
@@ -142,6 +141,14 @@ class ImageAMSoftmaxEngine(Engine):
                     class_weighting=class_weighting
                 ))
 
+            elif softmax_type == 'mlc':
+                self.main_losses.append(AsymmetricLoss(
+                    gamma_neg=4,
+                    gamma_pos=1,
+                    probability_margin=0.05,
+                    eps=1e-8
+                ))
+
             if self.enable_metric_losses:
                 trg_ml_losses = dict()
                 for model_name, model in self.models.items():
@@ -195,7 +202,6 @@ class ImageAMSoftmaxEngine(Engine):
         train_records = self.parse_data_for_train(data, True, self.enable_masks, self.use_gpu)
         imgs = train_records['img']
         obj_ids = train_records['obj_id']
-
         num_packages = 1
         if len(imgs.size()) != 4:
             assert len(imgs.size()) == 5
@@ -225,7 +231,6 @@ class ImageAMSoftmaxEngine(Engine):
                 model_loss, model_loss_summary, model_avg_acc, model_logits = self._single_model_losses(
                     self.models[model_name], train_records, imgs, obj_ids, n_iter, model_name, num_packages
                 )
-
                 avg_acc += model_avg_acc / float(num_models)
                 total_loss += model_loss / float(num_models)
                 loss_summary.update(model_loss_summary)
@@ -300,7 +305,6 @@ class ImageAMSoftmaxEngine(Engine):
             trg_logits = all_logits[trg_id][trg_mask]
             main_loss = self.main_losses[trg_id](trg_logits, trg_obj_ids, aug_index=self.aug_index,
                                                 lam=self.lam, iteration=n_iter, scale=self.scales[model_name])
-
             avg_acc += metrics.accuracy(trg_logits, trg_obj_ids)[0].item()
             loss_summary['main_{}/{}'.format(trg_id, model_name)] = main_loss.item()
 
