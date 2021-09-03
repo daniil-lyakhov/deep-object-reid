@@ -139,8 +139,7 @@ class MobileNetV3Base(ModelInterface):
         if return_featuremaps:
             return y
 
-        with no_nncf_head_context():
-            glob_features, logits = self.infer_head(y, skip_pool=False)
+        glob_features, logits = self.infer_head(y, skip_pool=False)
         if self.training and self.self_challenging_cfg.enable and gt_labels is not None:
             glob_features = rsc(
                 features = glob_features,
