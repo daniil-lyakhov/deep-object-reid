@@ -81,7 +81,8 @@ test:
   batch_size: 128
   evaluate: False
   eval_freq: 1
+
 nncf:
-  enable: True
+  enable: True 
   coeff_decrease_lr_for_nncf: 0.1
   nncf_config_path: 'nncf_config.json'
