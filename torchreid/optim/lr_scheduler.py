@@ -4,7 +4,8 @@ import math
 from torch import optim
 from torch.optim.lr_scheduler import _LRScheduler
 
-AVAI_SCH = {'single_step', 'multi_step', 'cosine', 'warmup', 'cosine_cycle', 'reduce_on_plateau', 'onecycle'}
+AVAI_SCH = {'single_step', 'multi_step', 'cosine', 'warmup', 'cosine_cycle',
+            'reduce_on_plateau_delayed', 'reduce_on_plateau', 'onecycle'}
 
 def build_lr_scheduler(optimizer, lr_scheduler, base_scheduler, **kwargs):
     if lr_scheduler == 'warmup':
@@ -28,7 +29,8 @@ def _build_scheduler(optimizer,
                 min_lr = 1e-4,
                 max_lr = 0.1,
                 patience = 5,
-                lr_decay_factor= 100):
+                lr_decay_factor= 100,
+                epoch_delay=0):
 
     init_learning_rate = [param_group['lr'] for param_group in optimizer.param_groups]
     min_lr = [lr / lr_decay_factor for lr in init_learning_rate]
@@ -88,6 +90,20 @@ def _build_scheduler(optimizer,
         epoch_treshold = max(int(max_epoch * 0.75) - warmup, 1) # 75% of the training - warmup epochs
         scheduler = ReduceLROnPlateauV2(optimizer, epoch_treshold, factor=gamma, patience=patience,
                                         threshold=2e-4, verbose=True, min_lr=min_lr, )
+    elif lr_scheduler == 'reduce_on_plateau_delayed':
+        if epoch_delay < 0:
+            raise ValueError(f'epoch_delay = {epoch_delay} should be greater than zero')
+
+        if max_epoch < epoch_delay:
+            raise ValueError(f'max_epoch param = {max_epoch} should be greater than'
+                             f' epoch_delay param = {epoch_delay}')
+
+        if epoch_delay < warmup:
+            raise ValueError(f'warmap param = {warmup} should be less than'
+                             f' epoch_delay param = {epoch_delay}')
+        epoch_treshold = max(int(max_epoch * 0.75) - epoch_delay, 1) # 75% of the training - skipped epochs
+        scheduler = ReduceLROnPlateauV2Delayed(optimizer, epoch_treshold, epoch_delay, factor=gamma,
+                                               patience=patience, threshold=2e-4, verbose=True, min_lr=min_lr)
     else:
         raise ValueError('Unknown scheduler: {}'.format(lr_scheduler))
 
@@ -260,3 +276,29 @@ class ReduceLROnPlateauV2(optim.lr_scheduler.ReduceLROnPlateau):
         if any([current_lr < init_lr for  init_lr, current_lr in zip(self.init_lr, self._last_lr)]):
             return True
         return False
+
+class ReduceLROnPlateauV2Delayed(ReduceLROnPlateauV2):
+    """
+    ReduceOnPlateuV2 scheduler which starts working only
+    after certain amount of epochs specified by epoch delay param.
+    Useful when compression algorithms is applying to prevent
+    lr drop before full model compression. Warmup included into epoch_delay.
+    """
+    def __init__(self,
+                 optimizer: optim.Optimizer,
+                 epoch_treshold: int,
+                 epoch_delay: int,
+                 **kwargs) -> None:
+
+        super().__init__(optimizer, epoch_treshold, **kwargs)
+        self._epoch_delay = epoch_delay
+
+    def step(self, metrics, epoch=None):
+        # If there was less than self._epoch_delay epochs
+        # just update epochs counter
+        if self.last_epoch <= self._epoch_delay:
+            if epoch is None:
+                epoch = self.last_epoch + 1
+            self.last_epoch = epoch
+        else:
+            super().step(metrics, epoch=epoch)

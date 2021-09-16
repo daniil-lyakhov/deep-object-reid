@@ -227,5 +227,6 @@ def wrap_nncf_model(model, cfg, datamanager_for_init,
                                                       dummy_forward_fn=dummy_forward,
                                                       wrap_inputs_fn=wrap_inputs,
                                                       compression_state=resuming_state_dict)
-
+    statistics = compression_ctrl.statistics()
+    print(f'nncf statistics before training: {statistics.to_str()}')
     return compression_ctrl, model, nncf_metainfo
