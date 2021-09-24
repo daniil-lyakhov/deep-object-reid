@@ -1,3 +1,4 @@
+
 lr_finder:
   enable: True
   mode: TPE
@@ -11,11 +12,11 @@ lr_finder:
   n_trials: 15
 
 model:
-  name: 'mobilenetv3_large'
+  name: 'mobilenetv3_small'
   type: 'classification'
   pretrained: True
   save_chkpt: True
-  feature_dim: 1280
+  feature_dim: 1024
 
 mutual_learning:
   aux_configs: ['mobilenetv3_large_aux.yml']
@@ -33,7 +34,7 @@ data:
   width: 224
   norm_mean: [0.485, 0.456, 0.406]
   norm_std: [0.229, 0.224, 0.225]
-  save_dir: 'output/mobilenetv3_large/log'
+  save_dir: 'output/mobilenetv3_small/log'
   workers: 6
   transforms:
     random_flip:
@@ -88,4 +89,4 @@ test:
 nncf:
   enable: True
   coeff_decrease_lr_for_nncf: 1.
-  nncf_config_path: 'nncf_config.json'
+  nncf_config_path: 'nncf_config_sparsity.json'
