@@ -8,8 +8,9 @@
                     "pruning_init": 0.1,
                     "params": {
                         "schedule": "exponential",
-                        "pruning_steps": 20,
-                        "pruning_target": 0.3,
+			"num_init_steps": 5,
+                        "pruning_steps": 40,
+                        "pruning_target": 0.2,
                         "weight_importance": "geometric_median"
                     }
                 },

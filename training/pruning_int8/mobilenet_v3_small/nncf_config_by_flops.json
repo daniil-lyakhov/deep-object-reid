@@ -5,15 +5,12 @@
 	"compression": [
                 {
                     "algorithm": "filter_pruning",
-                    "pruning_init": 0.01,
+                    "pruning_init": 0.05,
                     "params": {
                         "schedule": "exponential",
-			"prune_downsample_convs": true,
-			"prune_first_conv": true, 
-        		"prune_last_conv": true,
-                        "pruning_steps": 20,
-                        "pruning_target": 0.1,
-                        "weight_importance": "geometric_mean"
+                        "pruning_steps": 1,
+                        "pruning_flops_target": 0.05,
+                        "weight_importance": "median"
                     }
                 },
 		{
@@ -23,10 +20,10 @@
 			},
 			"initializer": {
 				"range": {
-					"num_init_samples": 15000
+					"num_init_samples": 0
 				},
 				"batchnorm_adaptation": {
-					"num_bn_adaptation_samples": 4000
+					"num_bn_adaptation_samples": 0
 				}
 			}
 		}
