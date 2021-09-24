@@ -1,0 +1,33 @@
+{
+	"input_info": {
+		"sample_size": [1, 3, 224, 224]
+	},
+	"compression": [
+                {
+                    "algorithm": "filter_pruning",
+                    "pruning_init": 0.01,
+                    "params": {
+                        "schedule": "exponential",
+                        "pruning_steps": 20,
+                        "pruning_target": 0.3,
+                        "weight_importance": "geometric_median"
+                    }
+                },
+		{
+			"algorithm": "quantization",
+			"activations": {
+				"mode": "asymmetric"
+			},
+			"initializer": {
+				"range": {
+					"num_init_samples": 15000
+				},
+				"batchnorm_adaptation": {
+					"num_bn_adaptation_samples": 4000
+				}
+			}
+		}
+	],
+	"log_dir": "."
+}
+
